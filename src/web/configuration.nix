@@ -49,6 +49,7 @@ let
          - final-message
          - power-state-change
     '';
+    nixosHashedPasswd = "$6$fx92Ndm.I$ikwE5nhSHTWy8k/FVGbAcv8YpHAbVgv9uMJXvUPjKXeSMgt3Uxr2iRInvrmZiWM0m6jCTJVmN5RNQAkDUPH0W.";
 in {
   imports =
     [ # Include the results of the hardware scan.
@@ -84,7 +85,8 @@ in {
   # $ nix-env -qaP | grep wget
   environment.systemPackages = with pkgs; [
     # General
-    mkpasswd wget 
+    mkpasswd
+    wget 
     # Editors
     emacs vim nano
     # Desktop
@@ -122,14 +124,23 @@ in {
   # services.xserver.displayManager.kdm.enable = true;
   # services.xserver.desktopManager.kde4.enable = true;
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  users.mutableUsers = false;
   users.users.nixos = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" ];
     home = "/home/nixos";
     description = "Default system user";
+    hashedPassword = nixosHashedPasswd;
+    openssh.authorizedKeys.keys = ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCvfDUTxx/eLkFRFZahGAqb7UPI32qSxf+SIEzIsa0ZQ3fGyQpGXwmWUXaJUyK30VedOZ6pnj9McBJ5g3qZm/eTRVcVgOP6KqG/YnChg5Qg7O3fROjeVY77LuYs6MCKavF+nE+CTgQ7IbRYlAMkdaMM6DElQ0huQIf/ekmP9yWvd25fuHoCHMDSB3kfzOU6C+fr0qIuQQkj/oq++pRMYbVgZ6RESWV83ULmorLrn/otH+/DInrVIclA+RsF188VfaJQQOCFNO0eVlBKgl+zFqdTB4XVu3TOTq7mAsAfv08qE5msyv8fZaZLLoL935ktiuogQCy8vgYrhLPb9/mILNqqnWuoozjNDdu7kwZcOg5OzsVhxuhOx70MJHZeBwkXI2O6194ioTWIn4GeI1OBabeaLl5Wp+TfPIL87QSXM9vk1IvAg44Mdux+teuBmdZXtzi4TgtKIs1fX3l3jMmSTmxzU7Mm72Nm2Aa11SVlYprqolOz+rrOiDCelnhhOmG55EbYLlm9nC3dnqULRj9pfrRBvUpWtV+jEyI7nhqx8XFvKf6jSq68JeY0QN1xKaekiNnN0Bo3VoNAtj9DBYfOTlCfs67VxL5+Cvn87wsOfQrdCmeU2TLCAL1UzhNaRHvHsqt30+8NeMe/O/sgwSHHWFbZp0Aq+yb4RBNpEFMB4UjSxw== beb82@cornell.edu"];
   };
-
+  users.users.skaller = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "networkmanager" ];
+    home = "/home/skaller";
+    description = "Default system user";
+    openssh.authorizedKeys.keys = ["ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAwuLRjPhrh5MA7iN1vbhcCVm9+GzqQGtW15WhDCLV0gcrW4vT/AudL2PigLSBSQBhWcrlD+Ju9eBI1PRKeKjW+KQvpsnsHgUYLHvFG1y4P6GlO6ig4Xht0mq3BmCH83yBosG/8qmWo/mwDwpipSG3YjnnkfMYjTo2JBs1rUKCjHXVULGG3kUKEdMpVz0E8J4JC2LMwh9DpBYhJDPpFzkdZrb/TTSbo+FlSBObyl9R8pj7xYFxcxMDZ+LBPbGJJCTW8uRN2JHkpS6SMUT6cfYUQXb+mYhy3sFaL/t8Sbch/CaOb0oyQaxyiXXnjaj6658sUnys3oF78HeMaBNjvhigVQ== johnskaller@110.20.10.221.optusnet.com.au"];
+  };
+  
   virtualisation.docker.enable = false; # currently not using docker
 
   containers.flx_web =
@@ -147,11 +158,26 @@ in {
 	ocaml-ng.ocamlPackages_4_06.ocaml
 	python36Full
       ];
+      users.mutableUsers = false;
       users.users.felix = {
         isNormalUser = true;
         home = "/home/felix";
         description = "A user for running the Felix web site";
-     };
+	hashedPassword = "$6$D2PEwvRqQu/b$vmYgbWYmLr3WqvectZuw4CZ8S5moOweZK6aE8Kn23HujkkiTcGisHw/CT5emoBwYfMmh3K..gFQgrvF30wdrv1";
+      };
+      users.users.nixos = {
+        isNormalUser = true;
+        extraGroups = [ "wheel" "networkmanager" ];
+        home = "/home/nixos";
+        description = "Default system user";
+	hashedPassword = nixosHashedPasswd;
+      };
+     
+     # TODO: add command to test if git clone is needed, and git pull felix otherwise:
+     # system.activationScripts = { text = ''
+     #   sudo su felix -c ""
+     #    
+     # '';};
     };
   };
   
