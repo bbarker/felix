@@ -49,7 +49,8 @@ let
          - final-message
          - power-state-change
     '';
-    nixosHashedPasswd = "$6$fx92Ndm.I$ikwE5nhSHTWy8k/FVGbAcv8YpHAbVgv9uMJXvUPjKXeSMgt3Uxr2iRInvrmZiWM0m6jCTJVmN5RNQAkDUPH0W.";
+    flxWebLocalAddr = "192.168.100.11";
+    publicHostInterface = "ens3";
 in {
   imports =
     [ # Include the results of the hardware scan.
@@ -62,20 +63,32 @@ in {
   # Define on which hard drive you want to install Grub.
   boot.loader.grub.device = "/dev/vda";
 
+  security.sudo.wheelNeedsPassword = false;
+
   networking.networkmanager.enable = false;
   networking.hostName = "felix-lang.org";
   
   # for containers:
-  networking.nat.enable = true;
-  networking.nat.internalInterfaces = ["ve-+"];
-  networking.nat.externalInterface = "ens3";
+  networking.nat = {
+    enable = true;
+    internalInterfaces = ["ve-+"];
+    externalInterface = publicHostInterface;
+    # forwardPorts = [
+    #   { destination = "${flxWebLocalAddr}:1234"; proto = "tcp"; sourcePort = 80; }
+    # ];
+  };
 
-  #
-  # Disable firewall in Cloud images by default; should be
-  # handled by cloud manager config instead.
-  #
   networking.firewall.enable = false;
-
+  #
+  # firewall is needed for NAT:
+  #
+  # networking.firewall = {
+  #   enable = true;
+  #   allowPing = true;
+  #   allowedTCPPorts = [ 80 1234 ];
+  #   # trustedInterfaces = [ publicHostInterface ]; 
+  # };
+  
   # Select internationalisation properties.
   # i18n = {
   #   consoleFont = "Lat2-Terminus16";
@@ -106,7 +119,6 @@ in {
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
-  services.openssh.permitRootLogin = "without-password";
   services.openssh.challengeResponseAuthentication = false;
 
   # Enable cloud-init
@@ -135,14 +147,13 @@ in {
     extraGroups = [ "wheel" "networkmanager" ];
     home = "/home/nixos";
     description = "Default system user";
-    hashedPassword = nixosHashedPasswd;
     openssh.authorizedKeys.keys = ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCvfDUTxx/eLkFRFZahGAqb7UPI32qSxf+SIEzIsa0ZQ3fGyQpGXwmWUXaJUyK30VedOZ6pnj9McBJ5g3qZm/eTRVcVgOP6KqG/YnChg5Qg7O3fROjeVY77LuYs6MCKavF+nE+CTgQ7IbRYlAMkdaMM6DElQ0huQIf/ekmP9yWvd25fuHoCHMDSB3kfzOU6C+fr0qIuQQkj/oq++pRMYbVgZ6RESWV83ULmorLrn/otH+/DInrVIclA+RsF188VfaJQQOCFNO0eVlBKgl+zFqdTB4XVu3TOTq7mAsAfv08qE5msyv8fZaZLLoL935ktiuogQCy8vgYrhLPb9/mILNqqnWuoozjNDdu7kwZcOg5OzsVhxuhOx70MJHZeBwkXI2O6194ioTWIn4GeI1OBabeaLl5Wp+TfPIL87QSXM9vk1IvAg44Mdux+teuBmdZXtzi4TgtKIs1fX3l3jMmSTmxzU7Mm72Nm2Aa11SVlYprqolOz+rrOiDCelnhhOmG55EbYLlm9nC3dnqULRj9pfrRBvUpWtV+jEyI7nhqx8XFvKf6jSq68JeY0QN1xKaekiNnN0Bo3VoNAtj9DBYfOTlCfs67VxL5+Cvn87wsOfQrdCmeU2TLCAL1UzhNaRHvHsqt30+8NeMe/O/sgwSHHWFbZp0Aq+yb4RBNpEFMB4UjSxw== beb82@cornell.edu"];
   };
   users.users.skaller = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" ];
     home = "/home/skaller";
-    description = "Default system user";
+    description = "John Skaller";
     openssh.authorizedKeys.keys = ["ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAwuLRjPhrh5MA7iN1vbhcCVm9+GzqQGtW15WhDCLV0gcrW4vT/AudL2PigLSBSQBhWcrlD+Ju9eBI1PRKeKjW+KQvpsnsHgUYLHvFG1y4P6GlO6ig4Xht0mq3BmCH83yBosG/8qmWo/mwDwpipSG3YjnnkfMYjTo2JBs1rUKCjHXVULGG3kUKEdMpVz0E8J4JC2LMwh9DpBYhJDPpFzkdZrb/TTSbo+FlSBObyl9R8pj7xYFxcxMDZ+LBPbGJJCTW8uRN2JHkpS6SMUT6cfYUQXb+mYhy3sFaL/t8Sbch/CaOb0oyQaxyiXXnjaj6658sUnys3oF78HeMaBNjvhigVQ== johnskaller@110.20.10.221.optusnet.com.au"];
   };
   
@@ -152,7 +163,8 @@ in {
   { autoStart = true;
     privateNetwork = true;
     hostAddress = "192.168.100.10";
-    localAddress = "192.168.100.11";
+    localAddress = flxWebLocalAddr;
+    forwardPorts = [ { containerPort = 1234; hostPort = 80; protocol = "tcp"; } ];
     bindMounts = {
       "/etc/resolv.conf" = {
         hostPath = "/etc/resolv.conf";
@@ -161,11 +173,14 @@ in {
     };
     config = { config, pkgs, ... }: {
       environment.systemPackages = with pkgs; [
+        # Debug:
+        lynx  
 	# Editors
 	emacs vim nano
 	# Development
 	git
 	# Other Felix deps
+	binutils
 	gcc
 	gmp
 	gnumake
@@ -188,7 +203,6 @@ in {
         extraGroups = [ "wheel" "networkmanager" ];
         home = "/home/nixos";
         description = "Default system user";
-	hashedPassword = nixosHashedPasswd;
       };
       
      # TODO: add command to test if git clone is needed, and git pull felix otherwise:
