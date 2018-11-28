@@ -64,6 +64,11 @@ in {
 
   networking.networkmanager.enable = false;
   networking.hostName = "felix-lang.org";
+  
+  # for containers:
+  networking.nat.enable = true;
+  networking.nat.internalInterfaces = ["ve-+"];
+  networking.nat.externalInterface = "ens3";
 
   #
   # Disable firewall in Cloud images by default; should be
@@ -145,9 +150,17 @@ in {
 
   containers.flx_web =
   { autoStart = true;
-    config =
-      { config, pkgs, ... }:
-      { environment.systemPackages = with pkgs; [
+    privateNetwork = true;
+    hostAddress = "192.168.100.10";
+    localAddress = "192.168.100.11";
+    bindMounts = {
+      "/etc/resolv.conf" = {
+        hostPath = "/etc/resolv.conf";
+        isReadOnly = true;
+      };  
+    };
+    config = { config, pkgs, ... }: {
+      environment.systemPackages = with pkgs; [
 	# Editors
 	emacs vim nano
 	# Development
@@ -155,9 +168,14 @@ in {
 	# Other Felix deps
 	gcc
 	gmp
+	gnumake
 	ocaml-ng.ocamlPackages_4_06.ocaml
 	python36Full
       ];
+      environment.variables = {
+        "PATH" = "$PATH:/home/felix/felix/build/release/host/bin/";
+        "FLX_INSTALL_DIR" = "/home/felix/felix/build/release";
+      };
       users.mutableUsers = false;
       users.users.felix = {
         isNormalUser = true;
@@ -172,7 +190,7 @@ in {
         description = "Default system user";
 	hashedPassword = nixosHashedPasswd;
       };
-     
+      
      # TODO: add command to test if git clone is needed, and git pull felix otherwise:
      # system.activationScripts = { text = ''
      #   sudo su felix -c ""
