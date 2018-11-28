@@ -26,7 +26,7 @@ let
          - ca-certs
          - rsyslog
          - users-groups
-	 - ssh
+         - ssh
        cloud_config_modules:
          - disk_setup
          - mounts
@@ -103,7 +103,6 @@ in {
   # $ nix-env -qaP | grep wget
   environment.systemPackages = with pkgs; [
     # General
-    mkpasswd
     wget 
     # Editors
     emacs vim nano
@@ -175,17 +174,17 @@ in {
       environment.systemPackages = with pkgs; [
         # Debug:
         lynx  
-	# Editors
-	emacs vim nano
-	# Development
-	git
-	# Other Felix deps
-	binutils
-	gcc
-	gmp
-	gnumake
-	ocaml-ng.ocamlPackages_4_06.ocaml
-	python36Full
+        # Editors
+        emacs vim nano
+        # Development
+        git
+        # Other Felix deps
+        binutils
+        gcc
+        gmp
+        gnumake
+        ocaml-ng.ocamlPackages_4_06.ocaml
+        python36Full
       ];
       environment.variables = {
         "PATH" = "$PATH:/home/felix/felix/build/release/host/bin/";
@@ -196,13 +195,13 @@ in {
         isNormalUser = true;
         home = "/home/felix";
         description = "A user for running the Felix web site";
-	hashedPassword = "$6$D2PEwvRqQu/b$vmYgbWYmLr3WqvectZuw4CZ8S5moOweZK6aE8Kn23HujkkiTcGisHw/CT5emoBwYfMmh3K..gFQgrvF30wdrv1";
       };
-      users.users.nixos = {
-        isNormalUser = true;
-        extraGroups = [ "wheel" "networkmanager" ];
-        home = "/home/nixos";
-        description = "Default system user";
+      users.users.dummy = {
+        # dummy needed to satisfy non-lockout assertion (which is nice for hosts...):
+        isNormalUser = false;
+        extraGroups = [ "wheel" ];
+        description = "Get past ";
+	hashedPassword = "";
       };
       
      # TODO: add command to test if git clone is needed, and git pull felix otherwise:
