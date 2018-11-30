@@ -73,21 +73,9 @@ in {
     enable = true;
     internalInterfaces = ["ve-+"];
     externalInterface = publicHostInterface;
-    # forwardPorts = [
-    #   { destination = "${flxWebLocalAddr}:1234"; proto = "tcp"; sourcePort = 80; }
-    # ];
   };
 
   networking.firewall.enable = false;
-  #
-  # firewall is needed for NAT:
-  #
-  # networking.firewall = {
-  #   enable = true;
-  #   allowPing = true;
-  #   allowedTCPPorts = [ 80 1234 ];
-  #   # trustedInterfaces = [ publicHostInterface ]; 
-  # };
   
   # Select internationalisation properties.
   # i18n = {
@@ -101,18 +89,23 @@ in {
 
   # List packages installed in system profile. To search by name, run:
   # $ nix-env -qaP | grep wget
-  environment.systemPackages = with pkgs; [
-    # General
-    wget 
-    # Editors
-    emacs vim nano
-    # Desktop
-    icewm
-    # Development
-    git tmux
-    # Cloud
-    cloud-init
-  ];
+  environment = {
+    shellAliases = {
+      flx-login = "sudo machinectl shell felix@flx_web";
+    };
+    systemPackages = with pkgs; [
+      # General
+      wget 
+      # Editors
+      emacs vim nano
+      # Desktop
+      icewm
+      # Development
+      git tmux
+      # Cloud
+      cloud-init
+    ];
+  };
 
   # List services that you want to enable:
 
@@ -170,40 +163,48 @@ in {
         isReadOnly = true;
       };  
     };
-    config = { config, pkgs, ... }: {
-      environment.systemPackages = with pkgs; [
-        # Debug:
-        lynx  
-        # Editors
-        emacs vim nano
-        # Development
-        git
-        # Other Felix deps
-        binutils
-        gcc
-        gmp
-        gnumake
-        ocaml-ng.ocamlPackages_4_06.ocaml
-        python36Full
-      ];
-      environment.variables = {
-        "PATH" = "$PATH:/home/felix/felix/build/release/host/bin/";
-        "FLX_INSTALL_DIR" = "/home/felix/felix/build/release";
+    config = { config, pkgs, ... }: let
+      flx_install_dir = "/home/felix/felix_local";
+    in {
+      environment = {
+	# this container environment should generally mirror:
+	# https://github.com/felix-lang/felix/blob/master/shell.nix
+	systemPackages = with pkgs; [
+	  # Editors
+	  emacs vim nano
+	  # Development
+	  git
+	  # Other Felix deps
+	  binutils
+	  gcc
+	  gmp
+	  gnumake
+	  ocaml-ng.ocamlPackages_4_06.ocaml
+	  python36Full
+	];
+	variables = {
+	  "PATH" = "$PATH:${flx_install_dir}/release/host/bin/";
+	  "FLX_INSTALL_DIR" = flx_install_dir;
+	};
       };
-      users.mutableUsers = false;
-      users.users.felix = {
-        isNormalUser = true;
-        home = "/home/felix";
-        description = "A user for running the Felix web site";
-      };
-      users.users.dummy = {
-        # dummy needed to satisfy non-lockout assertion (which is nice for hosts...):
-        isNormalUser = false;
-        extraGroups = [ "wheel" ];
-        description = "Get past ";
-	hashedPassword = "";
-      };
-      
+      users = {
+	mutableUsers = false;
+	users = {
+	  felix = {
+	    isNormalUser = true;
+	    home = "/home/felix";
+	    description = "A user for running the Felix web site";
+	  };
+	  dummy = {
+	    # dummy needed to satisfy non-lockout assertion (which is nice for hosts...):
+	    isNormalUser = false;
+	    extraGroups = [ "wheel" ];
+	    description = "Get past lockout assertion";
+	    hashedPassword = "";
+	  };
+	};  
+      };	
+
      # TODO: add command to test if git clone is needed, and git pull felix otherwise:
      # system.activationScripts = { text = ''
      #   sudo su felix -c ""
@@ -211,6 +212,7 @@ in {
      # '';};
     };
   };
+
   
   # The NixOS release to be compatible with for stateful data such as databases.
   system.stateVersion = "16.03";
